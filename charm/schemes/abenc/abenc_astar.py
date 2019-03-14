@@ -148,11 +148,7 @@ class CPabe_ASTAR(ABEnc):
         m = C_tilde / (e_pkug_s_alpha * x_u_inverse)
         return m
 
-'''
-#####################
-#   OLD FUNCTIONS   #
-#####################
- '''
+
     @Input(pk_t, mk_t, [str])
     @Output(sk_t)
     def keygen(self, pk, mk, S):

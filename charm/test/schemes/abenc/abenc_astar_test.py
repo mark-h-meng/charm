@@ -53,7 +53,7 @@ class CPabe_ASTARTest(unittest.TestCase):
 
         intmed_value = cpabe.proxy_decrypt(pk, sk_cs, pxy_k_u, ct)
         if debug: print("\nPxy Decrypt...\n")
-        if debug: print("\nRec msg =>", intmed_value)
+        if debug: print("\nIntm msg =>", intmed_value)
 
         rec_msg = cpabe.user_decrypt(pk, sk_u, intmed_value)
         if debug: print("\nUser Decrypt...\n")
