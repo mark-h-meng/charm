@@ -28,7 +28,6 @@ pk_t = { 'g':G1, 'g2':G2, 'h':G1, 'f':G1, 'e_gg_alpha':GT }
 mk_t = {'beta':ZR, 'alpha':ZR, 'g2_alpha':G2 }
 sk_t = { 'D':G2, 'Dp':G2 ,'Dj':G2, 'Djp':G1, 'S':str }
 ct_t = { 'C_tilde':GT, 'C':G1, 'Cpp':G1, 'Cy':G1, 'Cyp':G2 }
-intmd_ct_t = {}
 
 debug = False
 class CPabe_ASTAR(ABEnc):
@@ -49,13 +48,7 @@ class CPabe_ASTAR(ABEnc):
          
     def __init__(self, groupObj, groupObjEc=None):
         ABEnc.__init__(self)
-        global util, group
-
-        ## START: Add for the el-gamal support
-        global el
-        el = ElGamal(groupObjEc)
-        ## END
-
+        global util, group       
         util = SecretUtil(groupObj, verbose=False)
         group = groupObj
 
@@ -189,21 +182,35 @@ def main():
 
     (pk, mk) = cpabe.setup()
 
-    sk = cpabe.keygen(pk, mk, attrs)
-    print("sk :=>", sk)
+    # sk = cpabe.keygen(pk, mk, attrs)
+
+    ## START KEY GEN FOR USER & CS
+    pk_cs, sk_cs = cpabe.keygen_user(pk)
+    if debug: print("\ncloud key pair =>", (pk_cs, sk_cs))
+    
+    pk_u, sk_u = cpabe.keygen_user(pk)
+    if debug: print("\nuser key pair =>", (pk_u, sk_u))
+
+    pxy_k_u = cpabe.keygen_proxy(pk, mk, pk_u, pk_cs, attrs)
+    if debug: print("\nproxy key =>", pxy_k_u)
 
     rand_msg = groupObj.random(GT)
-    if debug: print("msg =>", rand_msg)
+    if debug: print("\nmsg =>", rand_msg)
     ct = cpabe.encrypt(pk, rand_msg, access_policy)
-    if debug: print("\n\nCiphertext...\n")
+    if debug: print("\nEncrypt...\n", ct)
     groupObj.debug(ct)
 
-    rec_msg = cpabe.decrypt(pk, sk, ct)
-    if debug: print("\n\nDecrypt...\n")
-    if debug: print("Rec msg =>", rec_msg)
+    intmed_value = cpabe.proxy_decrypt(pk, sk_cs, pxy_k_u, ct)
+    if debug: print("\nPxy Decrypt...\n")
+    if debug: print("\nIntm msg =>", intmed_value)
+
+    rec_msg = cpabe.user_decrypt(pk, sk_u, intmed_value)
+    if debug: print("\nUser Decrypt...\n")
+    if debug: print("\nRec msg =>", rec_msg)
 
     assert rand_msg == rec_msg, "FAILED Decryption: message is incorrect"
-    if debug: print("Successful Decryption!!!")
+    if debug: print("\nSuccessful Decryption!!!")
+    ## END
 
 if __name__ == "__main__":
     debug = True

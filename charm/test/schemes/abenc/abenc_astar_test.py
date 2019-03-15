@@ -14,15 +14,7 @@ debug = True
 class CPabe_ASTARTest(unittest.TestCase):
     def testCPabe_ASTAR(self):
         groupObj = PairingGroup('SS512')
-
-        ## START: Add for the el-gamal support
-        groupObj_ec = ECGroup(prime192v2)
-        ## END
-
-        ## START: Modify for the el-gamal support
-        # cpabe = CPabe_ASTAR(groupObj)
-        cpabe = CPabe_ASTAR(groupObj, groupObj_ec)
-        ## END
+        cpabe = CPabe_ASTAR(groupObj)
 
         attrs = ['ONE', 'TWO', 'THREE']
         access_policy = '((four or three) and (three or one))'
