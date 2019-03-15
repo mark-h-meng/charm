@@ -1,20 +1,14 @@
 import unittest
 
-from charm.schemes.abenc.abenc_astar import CPabe_ASTAR
+from charm.schemes.abenc.abenc_yang15 import CPabe_yang15
 from charm.toolbox.pairinggroup import PairingGroup, GT
-
-## START: Add for the el-gamal support
-from charm.toolbox.eccurve import prime192v2
-from charm.toolbox.ecgroup import ECGroup
-## END
-
-debug = True
+debug = False
 
 
-class CPabe_ASTARTest(unittest.TestCase):
-    def testCPabe_ASTAR(self):
+class CPabe_yang15Test(unittest.TestCase):
+    def testCPabe_yang15(self):
         groupObj = PairingGroup('SS512')
-        cpabe = CPabe_ASTAR(groupObj)
+        cpabe = CPabe_yang15(groupObj)
 
         attrs = ['ONE', 'TWO', 'THREE']
         access_policy = '((four or three) and (three or one))'

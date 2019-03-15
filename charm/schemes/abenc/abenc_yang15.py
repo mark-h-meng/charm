@@ -17,12 +17,6 @@ from charm.toolbox.pairinggroup import PairingGroup,ZR,G1,G2,GT,pair
 from charm.toolbox.secretutil import SecretUtil
 from charm.toolbox.ABEnc import ABEnc, Input, Output
 
-## START: Add for the el-gamal support
-from charm.toolbox.eccurve import prime192v2
-from charm.toolbox.ecgroup import ECGroup
-from charm.schemes.pkenc.pkenc_elgamal85 import ElGamal
-## END
-
 # type annotations
 pk_t = { 'g':G1, 'g2':G2, 'h':G1, 'f':G1, 'e_gg_alpha':GT }
 mk_t = {'beta':ZR, 'alpha':ZR, 'g2_alpha':G2 }
@@ -30,18 +24,21 @@ sk_t = { 'D':G2, 'Dp':G2 ,'Dj':G2, 'Djp':G1, 'S':str }
 ct_t = { 'C_tilde':GT, 'C':G1, 'Cpp':G1, 'Cy':G1, 'Cyp':G2 }
 
 debug = False
-class CPabe_ASTAR(ABEnc):
+class CPabe_yang15(ABEnc):
     """
     >>> from charm.toolbox.pairinggroup import PairingGroup,ZR,G1,G2,GT,pair
     >>> group = PairingGroup('SS512')
-    >>> cpabe = CPabe_BSW07(group)
+    >>> cpabe = CPabe_yang15(group)
     >>> msg = group.random(GT)
     >>> attributes = ['ONE', 'TWO', 'THREE']
     >>> access_policy = '((four or three) and (three or one))'
-    >>> (master_public_key, master_key) = cpabe.setup()
-    >>> secret_key = cpabe.keygen(master_public_key, master_key, attributes)
-    >>> cipher_text = cpabe.encrypt(master_public_key, msg, access_policy)
-    >>> decrypted_msg = cpabe.decrypt(master_public_key, secret_key, cipher_text)
+    >>> (pk, mk) = cpabe.setup()
+    >>> pk_cs, sk_cs = cpabe.keygen_user(pk)
+    >>> pk_u, sk_u = cpabe.keygen_user(pk)
+    >>> pxy_k_u = cpabe.keygen_proxy(pk, mk, pk_u, pk_cs, attributes)
+    >>> cipher_text = cpabe.encrypt(pk, msg, access_policy)
+    >>> intmed_value = cpabe.proxy_decrypt(pk, sk_cs, pxy_k_u, cipher_text)
+    >>> decrypted_msg = cpabe.user_decrypt(pk, sk_u, intmed_value)
     >>> msg == decrypted_msg
     True
     """ 
@@ -141,48 +138,16 @@ class CPabe_ASTAR(ABEnc):
         m = C_tilde / (e_pkug_s_alpha * x_u_inverse)
         return m
 
-
-    @Input(pk_t, mk_t, [str])
-    @Output(sk_t)
-    def keygen(self, pk, mk, S):
-        r = group.random() 
-        g_r = (pk['g2'] ** r)    
-        D = (mk['g2_alpha'] * g_r) ** (1 / mk['beta'])        
-        D_j, D_j_pr = {}, {}
-        for j in S:
-            r_j = group.random()
-            D_j[j] = g_r * (group.hash(j, G2) ** r_j)
-            D_j_pr[j] = pk['g'] ** r_j
-        return { 'D':D, 'Dj':D_j, 'Djp':D_j_pr, 'S':S }
-
-    @Input(pk_t, sk_t, ct_t)
-    @Output(GT)
-    def decrypt(self, pk, sk, ct):
-        policy = util.createPolicy(ct['policy'])
-        pruned_list = util.prune(policy, sk['S'])
-        if pruned_list == False:
-            return False
-        z = util.getCoefficients(policy)
-        A = 1 
-        for i in pruned_list:
-            j = i.getAttributeAndIndex(); k = i.getAttribute()
-            A *= ( pair(ct['Cy'][j], sk['Dj'][k]) / pair(sk['Djp'][k], ct['Cyp'][j]) ) ** z[j]
-        
-        return ct['C_tilde'] / (pair(ct['C'], sk['D']) / A)
-
-
 def main():   
     groupObj = PairingGroup('SS512')
 
-    cpabe = CPabe_BSW07(groupObj)
+    cpabe = CPabe_yang15(groupObj)
     attrs = ['ONE', 'TWO', 'THREE']
     access_policy = '((four or three) and (three or one))'
     if debug:
         print("Attributes =>", attrs); print("Policy =>", access_policy)
 
     (pk, mk) = cpabe.setup()
-
-    # sk = cpabe.keygen(pk, mk, attrs)
 
     ## START KEY GEN FOR USER & CS
     pk_cs, sk_cs = cpabe.keygen_user(pk)
